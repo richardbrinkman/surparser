@@ -554,7 +554,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         argumentParser.print_help()
     if arguments.test_title or arguments.all:
-        if arguments.plot:
+        if arguments.plot and arguments.cesuur:
             student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.cesuur, arguments.plot_dir,
                                                          arguments.plot_extension)
         else:
