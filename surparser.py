@@ -15,7 +15,7 @@ import os
 import re
 import sqlite3
 import sys
-
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -224,7 +224,35 @@ def item_types(cursor):
     """)
 
 
-def units(cursor, reference=None):
+def units(cursor):
+    return cursor.execute("""
+        SELECT Unit
+        FROM Question
+        WHERE Unit IS NOT NULL
+        GROUP BY Unit
+    """)
+
+
+def unit_question(cursor, question_id):
+    return cursor.execute("""
+        SELECT DaadwerkelijkeMarkering, COUNT(*)
+        FROM Answer
+        WHERE Nagekeken = 'Ja' AND QuestionId = ?
+        GROUP BY DaadwerkelijkeMarkering
+    """, (question_id,))
+
+
+def unit_distribution(cursor, unit):
+    sql = """
+        SELECT QuestionId, Naam
+        FROM Question
+        WHERE Unit = ?
+    """
+    for question_id, name in list(cursor.execute(sql, (unit,))):
+        yield name, list(unit_question(cursor, question_id))
+
+
+def unit_results(cursor, reference=None):
     if reference:
         where = " AND Reference = {}".format(reference)
     else:
@@ -260,7 +288,7 @@ def get_testform(cursor):
     return cursor.execute("SELECT TestForm, Test, TotalMark FROM Test").fetchone()
 
 
-def plot_student_score(cursor, output, cesuur, plot_dir='.', plot_extension="png"):
+def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
     cesuur /= 100.0
     x = np.arange(1, 11)
     y = np.zeros_like(x)
@@ -280,6 +308,28 @@ def plot_student_score(cursor, output, cesuur, plot_dir='.', plot_extension="png
     filename = os.path.join(plot_dir, f"student_score.{plot_extension}")
     fig.savefig(filename)
     return filename
+
+
+def plot_units(cursor, plot_dir=".", plot_extension="png"):
+    all_units = list(units(cursor))
+    for unit, in all_units:
+        distribution = list(unit_distribution(cursor, unit))
+        fig, axes = plt.subplots(figsize=(6.4, 0.85+len(distribution)/2))
+        axes.set(title=unit,
+                 xlabel="aantal studenten",
+                 ylabel="vraag")
+        for name, marks in distribution:
+            left = 0
+            for mark, count in marks:
+                axes.barh(name, count, left=left, color=f"C{mark}")
+                if int(count) > 0:
+                    axes.text(left+int(count)/2, name, str(mark), verticalalignment="center")
+                left += count
+
+        make_axes_area_auto_adjustable(axes)
+        filename = os.path.join(plot_dir, f"unit_{unit}.{plot_extension}")
+        fig.savefig(filename)
+        yield unit, filename
 
 
 def output_answer_score(cursor, output):
@@ -330,7 +380,7 @@ def output_student_detail(cursor, output):
         print(file=output)
         print("Unit                            | Aantal | Percentage", file=output)
         print("------------------------------- | ------:| ----------:", file=output)
-        for unit, count, percentage in units(cursor, reference):
+        for unit, count, percentage in unit_results(cursor, reference):
             if unit:
                 print(f"{unit} | {count:.0f} | {percentage:.1f}", file=output)
         print(file=output)
@@ -364,13 +414,17 @@ def output_item_types(cursor, output):
     print(file=output)
 
 
-def output_units(cursor, output):
+def output_units(cursor, output, plot_files=None):
     print("Units", file=output)
     print("=====", file=output)
     print(file=output)
+    if plot_files:
+        for unit, plot_file in plot_files:
+            print(f"![{unit}]({plot_file})", file=output)
+            print(file=output)
     print("Unit                                | Aantal | Percentage", file=output)
     print("----------------------------------- | ------:| ----------:", file=output)
-    for unit, count, percentage in units(cursor):
+    for unit, count, percentage in unit_results(cursor):
         if unit:
             print(f"{unit} | {count:.0f} | {percentage:.1f}", file=output)
     print(file=output)
@@ -502,14 +556,19 @@ if __name__ == "__main__":
         output_test(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.student_score or arguments.all:
         if arguments.plot:
-            student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur, arguments.plot_dir, arguments.plot_extension)
+            student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.cesuur, arguments.plot_dir,
+                                                         arguments.plot_extension)
         else:
             student_score_plot_file = None
         output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
     if arguments.item_type or arguments.all:
         output_item_types(arguments.db.cursor(), arguments.output)
     if arguments.units or arguments.all:
-        output_units(arguments.db.cursor(), arguments.output)
+        if arguments.plot:
+            unit_plot_files = plot_units(arguments.db.cursor(), arguments.plot_dir, arguments.plot_extension)
+        else:
+            unit_plot_files = None
+        output_units(arguments.db.cursor(), arguments.output, unit_plot_files)
     if arguments.learning_goals or arguments.all:
         output_learning_goals(arguments.db.cursor(), arguments.output)
     if arguments.answer_score or arguments.all:
