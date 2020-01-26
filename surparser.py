@@ -343,14 +343,11 @@ def output_answer_score(cursor, output):
     print(file=output)
 
 
-def output_student_score(cursor, output, cesuur, plot_file=None):
+def output_student_score(cursor, output, cesuur):
     print("Student scores", file=output)
     print("==============", file=output)
     print(file=output)
     if cesuur:
-        if plot_file:
-            print(f"![Student score]({plot_file})", file=output)
-            print(file=output)
         testform, test, totalmark = get_testform(cursor)
         cesuur /= 100.0
         print("Voornaam | Achternaam | Behaalde punten | Percentage | Cijfer", file=output)
@@ -442,7 +439,7 @@ def output_learning_goals(cursor, output):
     print(file=output)
 
 
-def output_test(cursor, output, cesuur):
+def output_test(cursor, output, cesuur, plot_file=None):
     testform, test, total_mark = get_testform(cursor)
     print(testform, file=output)
     print("=" * len(testform), file=output)
@@ -456,6 +453,10 @@ def output_test(cursor, output, cesuur):
         print("Gokkans     {:.1f}%".format(2*cesuur-100), file=output)
         print("Minimaal    {:.1f} punten".format(total_mark * (cesuur / 50.0 - 1.0)), file=output)
     print("---------   ----", file=output)
+    if plot_file:
+        print(file=output)
+        print(f"![Student score]({plot_file})", file=output)
+
     print(file=output)
 
 
@@ -553,14 +554,14 @@ if __name__ == "__main__":
     if len(sys.argv) == 1:
         argumentParser.print_help()
     if arguments.test_title or arguments.all:
-        output_test(arguments.db.cursor(), arguments.output, arguments.cesuur)
-    if arguments.student_score or arguments.all:
         if arguments.plot:
             student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.cesuur, arguments.plot_dir,
                                                          arguments.plot_extension)
         else:
             student_score_plot_file = None
-        output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
+        output_test(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
+    if arguments.student_score or arguments.all:
+        output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.item_type or arguments.all:
         output_item_types(arguments.db.cursor(), arguments.output)
     if arguments.units or arguments.all:
