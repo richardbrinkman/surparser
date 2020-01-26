@@ -11,9 +11,13 @@ Tip: if you want to produce a pdf use:
 
 import argparse
 import csv
+import os
 import re
 import sqlite3
 import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def open_database(filename):
@@ -256,6 +260,28 @@ def get_testform(cursor):
     return cursor.execute("SELECT TestForm, Test, TotalMark FROM Test").fetchone()
 
 
+def plot_student_score(cursor, output, cesuur, plot_dir='.', plot_extension="png"):
+    cesuur /= 100.0
+    x = np.arange(1, 11)
+    y = np.zeros_like(x)
+    fig, axes = plt.subplots()
+    axes.set(title="Student score",
+             xlabel="cijfer",
+             ylabel="aantal",
+             xticks=x)
+    _, _, totalmark = get_testform(cursor)
+    for _, _, actualmark, _ in student_score(cursor):
+        if actualmark < cesuur * totalmark:
+            cijfer = round(1.0 + 4.5 * actualmark / (cesuur * totalmark))
+        else:
+            cijfer = round(10.0 - 4.5 * (totalmark - actualmark) / ((1.0 - cesuur) * totalmark))
+        y[cijfer-1] += 1
+    axes.bar(x, y, align="center")
+    filename = os.path.join(plot_dir, f"student_score.{plot_extension}")
+    fig.savefig(filename)
+    return filename
+
+
 def output_answer_score(cursor, output):
     print("Gemiddelde score per vraag", file=output)
     print("==========================", file=output)
@@ -267,11 +293,14 @@ def output_answer_score(cursor, output):
     print(file=output)
 
 
-def output_student_score(cursor, output, cesuur):
+def output_student_score(cursor, output, cesuur, plot_file=None):
     print("Student scores", file=output)
     print("==============", file=output)
     print(file=output)
     if cesuur:
+        if plot_file:
+            print(f"![Student score]({plot_file})", file=output)
+            print(file=output)
         testform, test, totalmark = get_testform(cursor)
         cesuur /= 100.0
         print("Voornaam | Achternaam | Behaalde punten | Percentage | Cijfer", file=output)
@@ -427,6 +456,22 @@ if __name__ == "__main__":
         metavar="output_filename.md",
         type=argparse.FileType("w")
     )
+    argumentParser.add_argument("--plot",
+        action="store_true",
+        help="Include plots"
+    )
+    argumentParser.add_argument("--plot-dir",
+        default=".",
+        dest="plot_dir",
+        help="Directory where plots are stored (defaults to .)",
+        metavar="directory"
+    )
+    argumentParser.add_argument("--plot-extension",
+        default="png",
+        dest="plot_extension",
+        help="Extension of the plots (defaults to png",
+        metavar="png/jpeg/pdf/..."
+    )
     argumentParser.add_argument("--student-detail",
         action="store_true",
         dest="student_detail",
@@ -456,7 +501,11 @@ if __name__ == "__main__":
     if arguments.test_title or arguments.all:
         output_test(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.student_score or arguments.all:
-        output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur)
+        if arguments.plot:
+            student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur, arguments.plot_dir, arguments.plot_extension)
+        else:
+            student_score_plot_file = None
+        output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
     if arguments.item_type or arguments.all:
         output_item_types(arguments.db.cursor(), arguments.output)
     if arguments.units or arguments.all:
