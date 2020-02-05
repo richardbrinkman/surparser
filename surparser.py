@@ -386,7 +386,7 @@ def score(actualmark, cesuur, totalscore):
         return totalscore - (10.0 - actualmark) * (1.0 - cesuur) * totalscore / 4.5
 
 
-def output_student_detail(cursor, output):
+def output_student_detail(cursor, output, show_units=True, show_learning_goals=True):
     print("Gemaakte toetsen", file=output)
     print("================", file=output)
     print(file=output)
@@ -395,18 +395,20 @@ def output_student_detail(cursor, output):
         print(name, file=output)
         print("-" * len(name), file=output)
         print(file=output)
-        print("Unit                            | Aantal | Percentage", file=output)
-        print("------------------------------- | ------:| ----------:", file=output)
-        for unit, count, percentage in unit_results(cursor, reference):
-            if unit:
-                print(f"{unit} | {count:.0f} | {percentage:.1f}", file=output)
-        print(file=output)
-        print("Leerdoel                                                  | Aantal | Percentage", file=output)
-        print("--------------------------------------------------------- | ------:| -----------:", file=output)
-        for lo, count, percentage in learning_goals(cursor, reference):
-            if lo:
-                print("{} | {:.0f} | {:.1f}".format(lo.replace("|", "/"), count, percentage), file=output)
-        print(file=output)
+        if show_units:
+            print("Unit                            | Aantal | Percentage", file=output)
+            print("------------------------------- | ------:| ----------:", file=output)
+            for unit, count, percentage in unit_results(cursor, reference):
+                if unit:
+                    print(f"{unit} | {count:.0f} | {percentage:.1f}", file=output)
+            print(file=output)
+        if show_learning_goals:
+            print("Leerdoel                                                  | Aantal | Percentage", file=output)
+            print("--------------------------------------------------------- | ------:| -----------:", file=output)
+            for lo, count, percentage in learning_goals(cursor, reference):
+                if lo:
+                    print("{} | {:.0f} | {:.1f}".format(lo.replace("|", "/"), count, percentage), file=output)
+            print(file=output)
         print("Vraag                 | Gegeven antwoord (Goede antwoord)                     | Behaalde score / Max score", file=output)
         print("--------------------- | ----------------------------------------------------- | --------------------------:", file=output)
         for Naam, Reactie, Sleutel, DaadwerkelijkeMarkering, TotaalScore in answers(cursor, reference):
@@ -617,4 +619,4 @@ if __name__ == "__main__":
     if arguments.answer_score or arguments.all:
         output_answer_score(arguments.db.cursor(), arguments.output)
     if arguments.student_detail or arguments.all:
-        output_student_detail(arguments.db.cursor(), arguments.output)
+        output_student_detail(arguments.db.cursor(), arguments.output, arguments.units, arguments.learning_goals)
