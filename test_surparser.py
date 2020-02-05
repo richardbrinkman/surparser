@@ -2,7 +2,7 @@
 
 import unittest
 
-from surparser import parse_question_params
+from surparser import *
 
 
 class ParamParsingTestCase(unittest.TestCase):
@@ -39,6 +39,35 @@ class ParamParsingTestCase(unittest.TestCase):
         self.assertEqual("5", second_question["Totaalscore"])
         self.assertEqual("B", second_question["Sleutel"])
         self.assertEqual("Meerkeuze", second_question["ItemType"])
+
+
+class MarkTest(unittest.TestCase):
+    def test_lowest_mark_is_one(self):
+        for cesuur in range(10, 100):
+            for totalscore in range(1, 100):
+                self.assertEqual(1.0, mark(0.0, cesuur / 100.0, totalscore))
+
+    def test_highest_mark_is_ten(self):
+        for cesuur in range(10, 100):
+            for totalscore in range(1, 100):
+                self.assertEqual(10.0,
+                                 mark(totalscore, cesuur / 100.0, totalscore),
+                                 msg=f"Wrong mark({totalscore}, {cesuur / 100.0}, {totalscore})")
+
+    def test_cesuur_is_five_point_five(self):
+        for cesuur in range(10, 100):
+            for totalscore in range(1, 100):
+                self.assertAlmostEqual(5.5,
+                                       mark(totalscore * cesuur / 100.0, cesuur / 100.0, totalscore),
+                                       msg=f"Wrong mark({totalscore * cesuur / 100.0}, {cesuur / 100.0}, {totalscore})")
+
+    def test_mark_is_inverse_of_score(self):
+        for cesuur in range(10, 100):
+            for totalscore in range(1, 100):
+                for actualscore in range(totalscore):
+                    self.assertAlmostEqual(actualscore,
+                                           score(mark(actualscore, cesuur / 100.0, totalscore), cesuur / 100.0,
+                                                 totalscore))
 
 
 if __name__ == '__main__':

@@ -15,9 +15,10 @@ import os
 import re
 import sqlite3
 import sys
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
+
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
 
 
 def open_database(filename):
@@ -353,10 +354,7 @@ def output_student_score(cursor, output, cesuur):
         print("Voornaam | Achternaam | Behaalde punten | Percentage | Cijfer", file=output)
         print("-------- | ---------- | ---------------:| ----------:| ------:", file=output)
         for firstname, lastname, actualmark, percentage in student_score(cursor):
-            if actualmark < cesuur * totalmark:
-                cijfer = 1.0 + 4.5 * actualmark / (cesuur * totalmark)
-            else:
-                cijfer = 10.0 - 4.5 * (totalmark - actualmark) / ((1.0 - cesuur) * totalmark)
+            cijfer = mark(actualmark, cesuur, totalmark)
             print(f"{firstname} | {lastname} | {actualmark} | {percentage:.1f} | {cijfer:.0f}", file=output)
     else:
         print("Voornaam | Achternaam | Behaalde punten | Percentage", file=output)
@@ -364,6 +362,28 @@ def output_student_score(cursor, output, cesuur):
         for firstname, lastname, actualmark, percentage in student_score(cursor):
             print(f"{firstname} | {lastname} | {actualmark} | {percentage:.1f}", file=output)
     print(file=output)
+
+
+def mark(actualscore, cesuur, totalscore):
+    if actualscore < 0:
+        actualscore = 0
+    elif actualscore > totalscore:
+        actualscore = totalscore
+    elif actualscore < cesuur * totalscore:
+        return 1.0 + 4.5 * actualscore / (cesuur * totalscore)
+    else:
+        return 10.0 - 4.5 * (totalscore - actualscore) / ((1.0 - cesuur) * totalscore)
+
+
+def score(actualmark, cesuur, totalscore):
+    if actualmark < 1.0:
+        return 0.0
+    elif actualmark > 10.0:
+        return totalscore
+    elif actualmark < 5.5:
+        return (actualmark - 1.0) * cesuur * totalscore / 4.5
+    else:
+        return totalscore - (10.0 - actualmark) * (1.0 - cesuur) * totalscore / 4.5
 
 
 def output_student_detail(cursor, output):
@@ -449,14 +469,30 @@ def output_test(cursor, output, cesuur, plot_file=None):
     print("Max score  ", total_mark, file=output)
     if cesuur:
         print(f"Cesuur      {cesuur:.1f}%", file=output)
-        print("Voldoende   {:.1f} punten".format(total_mark*cesuur/100), file=output)
-        print("Gokkans     {:.1f}%".format(2*cesuur-100), file=output)
-        print("Minimaal    {:.1f} punten".format(total_mark * (cesuur / 50.0 - 1.0)), file=output)
+        print("Voldoende   {:.1f} punten".format(total_mark * cesuur / 100), file=output)
+        print("Gokkans     {:.1f}%".format(2 * cesuur - 100), file=output)
     print("---------   ----", file=output)
     if plot_file:
         print(file=output)
         print(f"![Student score]({plot_file})", file=output)
 
+    print(file=output)
+
+
+def output_translation(cursor, output, cesuur):
+    _, _, total_mark = get_testform(cursor)
+    cesuur /= 100.0
+    print("Omrekeningstabel", file=output)
+    print("================", file=output)
+    print(file=output)
+    print("Score        | Cijfer", file=output)
+    print("-----------  | ------", file=output)
+    for cijfer in range(1, 11):
+        print("{:.1f} - {:.1f} | {:d}".format(
+            score(cijfer - 0.5, cesuur, total_mark),
+            score(cijfer + 0.5, cesuur, total_mark),
+            cijfer
+        ), file=output)
     print(file=output)
 
 
@@ -533,19 +569,23 @@ if __name__ == "__main__":
         help="Lists all answers for each student"
     )
     argumentParser.add_argument("--student-score",
-        action="store_true",
-        dest="student_score",
-        help="Lists all students ordered by their score"
-    )
+                                action="store_true",
+                                dest="student_score",
+                                help="Lists all students ordered by their score"
+                                )
     argumentParser.add_argument("--test-title",
-        action="store_true",
-        dest="test_title",
-        help="Lists the title of the test form"
-    )
+                                action="store_true",
+                                dest="test_title",
+                                help="Lists the title of the test form"
+                                )
+    argumentParser.add_argument("--translation",
+                                action="store_true",
+                                help="Add a translation table between score and marks"
+                                )
     argumentParser.add_argument("--units",
-        action="store_true",
-        help="Lists all units with their average score"
-    )
+                                action="store_true",
+                                help="Lists all units with their average score"
+                                )
     arguments = argumentParser.parse_args()
 
     read_csv(arguments.input, arguments.db.cursor())
@@ -560,6 +600,8 @@ if __name__ == "__main__":
         else:
             student_score_plot_file = None
         output_test(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
+    if (arguments.translation or arguments.all) and arguments.cesuur:
+        output_translation(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.student_score or arguments.all:
         output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.item_type or arguments.all:
