@@ -253,6 +253,11 @@ def unit_distribution(db, unit):
         yield name, unit_question(db.cursor(), question_id)
 
 
+def question_distribution(db):
+    for question_id, name in db.cursor().execute("SELECT QuestionId, Naam FROM Question"):
+        yield name, unit_question(db.cursor(), question_id)
+
+
 def unit_results(cursor, reference=None):
     if reference:
         where = " AND Reference = {}".format(reference)
@@ -313,29 +318,39 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
 
 def plot_units(db, plot_dir=".", plot_extension="png"):
     for unit, in units(db.cursor()):
-        distribution = list(unit_distribution(db, unit))
-        fig, axes = plt.subplots(figsize=(6.4, 0.85 + len(distribution) / 2))
-        axes.set(title=unit,
-                 xlabel="aantal studenten",
-                 ylabel="vraag")
-        for name, marks in distribution:
-            left = 0
-            for mark, count in marks:
-                axes.barh(name, count, left=left, color=f"C{mark}")
-                if int(count) > 0:
-                    axes.text(left + int(count) / 2, name, str(mark), verticalalignment="center")
-                left += count
-
-        make_axes_area_auto_adjustable(axes)
-        filename = os.path.join(plot_dir, f"unit_{unit}.{plot_extension}")
-        fig.savefig(filename)
-        yield unit, filename
+        yield plot_unit(list(unit_distribution(db, unit)), plot_dir, plot_extension, unit)
 
 
-def output_answer_score(cursor, output):
+def plot_questions(db, plot_dir=".", plot_extension="png"):
+    return plot_unit(list(question_distribution(db)), plot_dir, plot_extension, "questions")
+
+
+def plot_unit(distribution, plot_dir, plot_extension, unit):
+    fig, axes = plt.subplots(figsize=(6.4, 0.85 + len(distribution) / 2))
+    axes.set(title=unit,
+             xlabel="aantal studenten",
+             ylabel="vraag")
+    for name, marks in distribution:
+        left = 0
+        for mark, count in marks:
+            axes.barh(name, count, left=left, color=f"C{mark}")
+            if int(count) > 0:
+                axes.text(left + int(count) / 2, name, str(mark), verticalalignment="center")
+            left += count
+    make_axes_area_auto_adjustable(axes)
+    filename = os.path.join(plot_dir, f"unit_{unit}.{plot_extension}")
+    fig.savefig(filename)
+    return unit, filename
+
+
+def output_answer_score(cursor, output, plot_file=None):
     print("Gemiddelde score per vraag", file=output)
     print("==========================", file=output)
     print(file=output)
+    if plot_file:
+        unit, file_name = plot_file
+        print(f"![{unit}]({file_name})", file=output)
+        print(file=output)
     print("Vraag | MaxScore | Percentage", file=output)
     print("----- | --------:| ----------:", file=output)
     for question, max_score, percentage in answer_score(cursor):
@@ -592,6 +607,8 @@ if __name__ == "__main__":
     read_csv(arguments.input, arguments.db.cursor())
     arguments.db.commit()
 
+    unit_plot_files = None
+
     if len(sys.argv) == 1:
         argumentParser.print_help()
     if arguments.test_title or arguments.all:
@@ -610,12 +627,14 @@ if __name__ == "__main__":
     if arguments.units or arguments.all:
         if arguments.plot:
             unit_plot_files = plot_units(arguments.db, arguments.plot_dir, arguments.plot_extension)
-        else:
-            unit_plot_files = None
         output_units(arguments.db.cursor(), arguments.output, unit_plot_files)
     if arguments.learning_goals or arguments.all:
         output_learning_goals(arguments.db.cursor(), arguments.output)
     if arguments.answer_score or arguments.all:
-        output_answer_score(arguments.db.cursor(), arguments.output)
+        if arguments.plot and not unit_plot_files:
+            question_plot_file = plot_questions(arguments.db, arguments.plot_dir, arguments.plot_extension)
+        else:
+            question_plot_file = None
+        output_answer_score(arguments.db.cursor(), arguments.output, question_plot_file)
     if arguments.student_detail or arguments.all:
         output_student_detail(arguments.db.cursor(), arguments.output, arguments.units, arguments.learning_goals)
