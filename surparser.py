@@ -243,14 +243,14 @@ def unit_question(cursor, question_id):
     """, (question_id,))
 
 
-def unit_distribution(cursor, unit):
+def unit_distribution(db, unit):
     sql = """
         SELECT QuestionId, Naam
         FROM Question
         WHERE Unit = ?
     """
-    for question_id, name in list(cursor.execute(sql, (unit,))):
-        yield name, list(unit_question(cursor, question_id))
+    for question_id, name in db.cursor().execute(sql, (unit,)):
+        yield name, unit_question(db.cursor(), question_id)
 
 
 def unit_results(cursor, reference=None):
@@ -311,11 +311,10 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
     return filename
 
 
-def plot_units(cursor, plot_dir=".", plot_extension="png"):
-    all_units = list(units(cursor))
-    for unit, in all_units:
-        distribution = list(unit_distribution(cursor, unit))
-        fig, axes = plt.subplots(figsize=(6.4, 0.85+len(distribution)/2))
+def plot_units(db, plot_dir=".", plot_extension="png"):
+    for unit, in units(db.cursor()):
+        distribution = list(unit_distribution(db, unit))
+        fig, axes = plt.subplots(figsize=(6.4, 0.85 + len(distribution) / 2))
         axes.set(title=unit,
                  xlabel="aantal studenten",
                  ylabel="vraag")
@@ -324,7 +323,7 @@ def plot_units(cursor, plot_dir=".", plot_extension="png"):
             for mark, count in marks:
                 axes.barh(name, count, left=left, color=f"C{mark}")
                 if int(count) > 0:
-                    axes.text(left+int(count)/2, name, str(mark), verticalalignment="center")
+                    axes.text(left + int(count) / 2, name, str(mark), verticalalignment="center")
                 left += count
 
         make_axes_area_auto_adjustable(axes)
@@ -610,7 +609,7 @@ if __name__ == "__main__":
         output_item_types(arguments.db.cursor(), arguments.output)
     if arguments.units or arguments.all:
         if arguments.plot:
-            unit_plot_files = plot_units(arguments.db.cursor(), arguments.plot_dir, arguments.plot_extension)
+            unit_plot_files = plot_units(arguments.db, arguments.plot_dir, arguments.plot_extension)
         else:
             unit_plot_files = None
         output_units(arguments.db.cursor(), arguments.output, unit_plot_files)
