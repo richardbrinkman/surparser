@@ -380,9 +380,9 @@ def output_student_score(cursor, output, cesuur):
 
 def mark(actualscore, cesuur, totalscore):
     if actualscore < 0:
-        actualscore = 0
+        return 1.0
     elif actualscore > totalscore:
-        actualscore = totalscore
+        return 10.0
     elif actualscore < cesuur * totalscore:
         return 1.0 + 4.5 * actualscore / (cesuur * totalscore)
     else:
