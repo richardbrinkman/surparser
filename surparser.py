@@ -283,11 +283,11 @@ def learning_goals(cursor, reference=None):
         SELECT LO, COUNT(DISTINCT QuestionId) AS aantal, 100.0 * SUM(DaadwerkelijkeMarkering) / SUM(Totaalscore) AS percentage
         FROM Question
         NATURAL JOIN Answer
-        WHERE Nagekeken = 'Ja'{}
+        WHERE Nagekeken = 'Ja' AND LO IS NOT NULL{}
         GROUP BY LO
         ORDER BY percentage DESC
     """.format(where)
-    )
+                          )
 
 
 def get_testform(cursor):
@@ -611,6 +611,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 1:
         argumentParser.print_help()
+    arguments.units = len(list(units(arguments.db.cursor()))) > 0 and (arguments.units or arguments.all)
+    arguments.learning_goals = len(list(learning_goals(arguments.db.cursor()))) > 0 and (
+                arguments.learning_goals or arguments.all)
     if arguments.test_title or arguments.all:
         if arguments.plot and arguments.cesuur:
             student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.cesuur, arguments.plot_dir,
@@ -624,11 +627,11 @@ if __name__ == "__main__":
         output_student_score(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.item_type or arguments.all:
         output_item_types(arguments.db.cursor(), arguments.output)
-    if arguments.units or arguments.all:
+    if arguments.units:
         if arguments.plot:
             unit_plot_files = plot_units(arguments.db, arguments.plot_dir, arguments.plot_extension)
         output_units(arguments.db.cursor(), arguments.output, unit_plot_files)
-    if arguments.learning_goals or arguments.all:
+    if arguments.learning_goals:
         output_learning_goals(arguments.db.cursor(), arguments.output)
     if arguments.answer_score or arguments.all:
         if arguments.plot and not unit_plot_files:
