@@ -183,15 +183,31 @@ def answer_score(cursor):
     """)
 
 
-def student_score(cursor):
-    return cursor.execute("""
-        SELECT FirstName, LastName, ActualMark, 100.0 * ActualMark / TotalMark AS percentage
+def student_score(cursor, cesuur=None):
+    cursor.execute("""
+        SELECT FirstName, LastName, ActualMark, TotalMark
         FROM Student
         NATURAL JOIN Answer
         WHERE Nagekeken = 'Ja'
         GROUP BY Reference
-        ORDER BY percentage DESC
+        ORDER BY ActualMark DESC
     """)
+    for first_name, last_name, actual_score, total_score in cursor:
+        if cesuur is None:
+            yield first_name, last_name, actual_score, 100.0 * actual_score / total_score
+        else:
+            yield first_name, last_name, actual_score, 100.0 * actual_score / total_score, mark(actual_score, cesuur,
+                                                                                                total_score)
+
+
+def pass_percentage(cursor, cesuur):
+    pass_count = 0
+    count = 0
+    for _, _, _, _, cijfer in student_score(cursor, cesuur):
+        if float(cijfer) > 5.5:
+            pass_count += 1
+        count += 1
+    return 100.0 * pass_count / count
 
 
 def students(cursor):
@@ -304,9 +320,8 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
              ylabel="aantal",
              xticks=x)
     _, _, totalmark = get_testform(cursor)
-    for _, _, actualmark, _ in student_score(cursor):
-        cijfer = mark(actualmark, cesuur, totalmark)
-        y[cijfer-1] += 1
+    for _, _, actualmark, _, cijfer in student_score(cursor, cesuur):
+        y[cijfer - 1] += 1
     axes.bar(x, y, align="center")
     filename = os.path.join(plot_dir, f"student_score.{plot_extension}")
     fig.savefig(filename)
@@ -364,8 +379,7 @@ def output_student_score(cursor, output, cesuur):
         cesuur /= 100.0
         print("Voornaam | Achternaam | Behaalde punten | Percentage | Cijfer", file=output)
         print("-------- | ---------- | ---------------:| ----------:| ------:", file=output)
-        for firstname, lastname, actualmark, percentage in student_score(cursor):
-            cijfer = mark(actualmark, cesuur, totalmark)
+        for firstname, lastname, actualmark, percentage, cijfer in student_score(cursor, cesuur):
             print(f"{firstname} | {lastname} | {actualmark} | {percentage:.1f} | {cijfer:.0f}", file=output)
     else:
         print("Voornaam | Achternaam | Behaalde punten | Percentage", file=output)
@@ -477,14 +491,15 @@ def output_test(cursor, output, cesuur, plot_file=None):
     print(testform, file=output)
     print("=" * len(testform), file=output)
     print(file=output)
-    print("---------   ----", file=output)
-    print("Test       ", test, file=output)
-    print("Max score  ", total_mark, file=output)
+    print("------------------   ----", file=output)
+    print("Test                ", test, file=output)
+    print("Max score           ", total_mark, file=output)
     if cesuur:
-        print(f"Cesuur      {cesuur:.1f}%", file=output)
-        print("Voldoende   {:.1f} punten".format(total_mark * cesuur / 100), file=output)
-        print("Gokkans     {:.1f}%".format(2 * cesuur - 100), file=output)
-    print("---------   ----", file=output)
+        print(f"Cesuur               {cesuur:.1f}%", file=output)
+        print("Voldoende            {:.1f} punten".format(total_mark * cesuur / 100), file=output)
+        print("Gokkans              {:.1f}%".format(2 * cesuur - 100), file=output)
+        print("Slagingspercentage   {:.1f}%".format(pass_percentage(cursor, cesuur / 100.0)), file=output)
+    print("------------------   ----", file=output)
     if plot_file:
         print(file=output)
         print(f"![Student score]({plot_file})", file=output)
