@@ -305,10 +305,7 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
              xticks=x)
     _, _, totalmark = get_testform(cursor)
     for _, _, actualmark, _ in student_score(cursor):
-        if actualmark < cesuur * totalmark:
-            cijfer = round(1.0 + 4.5 * actualmark / (cesuur * totalmark))
-        else:
-            cijfer = round(10.0 - 4.5 * (totalmark - actualmark) / ((1.0 - cesuur) * totalmark))
+        cijfer = mark(actualmark, cesuur, totalmark)
         y[cijfer-1] += 1
     axes.bar(x, y, align="center")
     filename = os.path.join(plot_dir, f"student_score.{plot_extension}")
