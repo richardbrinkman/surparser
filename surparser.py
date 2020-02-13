@@ -321,6 +321,7 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
              xticks=x)
     _, _, totalmark = get_testform(cursor)
     for _, _, actualmark, _, cijfer in student_score(cursor, cesuur):
+        cijfer = round(cijfer)
         y[cijfer - 1] += 1
     axes.bar(x, y, align="center")
     filename = os.path.join(plot_dir, f"student_score.{plot_extension}")
