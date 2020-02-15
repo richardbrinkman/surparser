@@ -15,6 +15,7 @@ import os
 import re
 import sqlite3
 import sys
+from functools import lru_cache
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -230,6 +231,14 @@ def answers(cursor, reference):
     """, (reference,))
 
 
+def multiplechoice_questions(cursor):
+    return cursor.execute("""
+        SELECT QuestionId, Naam, Sleutel
+        FROM Question
+        WHERE ItemType IN ('Meerkeuzevraag', 'Meerdere antwoorden', 'Eender/of')
+    """)
+
+
 def item_types(cursor):
     return cursor.execute("""
         SELECT ItemType, COUNT(DISTINCT QuestionId) AS aantal, 100.0 * SUM(DaadwerkelijkeMarkering) / SUM(TotaalScore) AS percentage
@@ -302,8 +311,35 @@ def learning_goals(cursor, reference=None):
         WHERE Nagekeken = 'Ja' AND LO IS NOT NULL{}
         GROUP BY LO
         ORDER BY percentage DESC
-    """.format(where)
-                          )
+    """.format(where))
+
+
+@lru_cache(maxsize=1)
+def all_multiplechoice_answers(cursor):
+    cursor.execute("""
+        SELECT Reactie
+        FROM Answer
+        NATURAL JOIN Question
+        WHERE ItemType IN ('Meerkeuzevraag', 'Meerdere antwoorden', 'Eender/of') AND Reactie != ''
+        GROUP BY Reactie
+    """)
+    return sorted({choice for answer, in cursor for choice in answer.split('| ')})
+
+
+def distribution(cursor):
+    choices = all_multiplechoice_answers(cursor)
+    for question_id, name, correct_answer in multiplechoice_questions(cursor.connection.cursor()):
+        cursor.execute("""
+            SELECT Reactie, COUNT(*)
+            FROM Answer
+            WHERE QuestionId = ? AND Reactie != ''
+            GROUP BY Reactie
+        """, (question_id,))
+        result = {choice: 0 for choice in choices}
+        for answer, count in cursor:
+            for choice in answer.split('| '):
+                result[choice] += count
+        yield name, correct_answer, result
 
 
 def get_testform(cursor):
@@ -368,6 +404,27 @@ def output_answer_score(cursor, output, plot_file=None):
     print("----- | --------:| ----------:", file=output)
     for question, max_score, percentage in answer_score(cursor):
         print(f"{question} | {max_score:.0f} | {percentage:.1f}", file=output)
+    print(file=output)
+
+
+def format_answer(correct_answer, answer, count):
+    if count == 0:
+        return ""
+    elif answer in correct_answer:
+        return f"**{count:d}**"
+    else:
+        return str(count)
+
+
+def output_distribution(cursor, output):
+    print("Antwoord distributie meerkeuzevragen", file=output)
+    print("====================================", file=output)
+    print(file=output)
+    print("Vraag | {}".format(" | ".join(all_multiplechoice_answers(cursor))), file=output)
+    print("----- | {}".format(" | ".join(map(lambda x: "-" * len(x), all_multiplechoice_answers(cursor)))), file=output)
+    for question, correct_answer, answers in distribution(cursor):
+        print("{} | {}".format(question, " | ".join(
+            [format_answer(correct_answer, answer, answers[answer]) for answer in answers]), file=output))
     print(file=output)
 
 
@@ -545,26 +602,30 @@ if __name__ == "__main__":
         help="Lists all questions ordered by the average score"
     )
     argumentParser.add_argument("--cesuur",
-        help="Cesuur",
-        metavar="percentage",
-        type=float
-    )
+                                help="Cesuur",
+                                metavar="percentage",
+                                type=float
+                                )
     argumentParser.add_argument("--db",
-        default=":memory:",
-        help="Name of the database file (defaults to :memory:)",
-        metavar="database.db",
-        type=open_database
-    )
+                                default=":memory:",
+                                help="Name of the database file (defaults to :memory:)",
+                                metavar="database.db",
+                                type=open_database
+                                )
+    argumentParser.add_argument("--distribution",
+                                action="store_true",
+                                help="Adds a table of multiple choice answers and their distribution"
+                                )
     argumentParser.add_argument("--input",
-        default="ItemsDeliveredRawReport.csv",
-        help="Name of the input CSV file (defaults to ItemsDeliveredRawReport.csv)",
-        metavar="input_file_name.csv"
-    )
+                                default="ItemsDeliveredRawReport.csv",
+                                help="Name of the input CSV file (defaults to ItemsDeliveredRawReport.csv)",
+                                metavar="input_file_name.csv"
+                                )
     argumentParser.add_argument("--item-type",
-        action="store_true",
-        dest="item_type",
-        help="Lists all item types with their average score"
-    )
+                                action="store_true",
+                                dest="item_type",
+                                help="Lists all item types with their average score"
+                                )
     argumentParser.add_argument("--learning-goals",
         action="store_true",
         dest="learning_goals",
@@ -652,5 +713,7 @@ if __name__ == "__main__":
         else:
             question_plot_file = None
         output_answer_score(arguments.db.cursor(), arguments.output, question_plot_file)
+    if arguments.distribution or arguments.all:
+        output_distribution(arguments.db.cursor(), arguments.output)
     if arguments.student_detail or arguments.all:
         output_student_detail(arguments.db.cursor(), arguments.output, arguments.units, arguments.learning_goals)
