@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request
+import os
 import pypandoc
 
 
@@ -20,4 +21,4 @@ def convert():
 
 
 if __name__ == "__main__":
-    app.run(port=80, debug=True)
+    app.run(port=os.getenv('PORT', 8080), debug=True)
