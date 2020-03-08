@@ -21,4 +21,9 @@ def convert():
 
 
 if __name__ == "__main__":
+    try:
+        pypandoc.get_pandoc_version()
+    except OSError:
+        pypandoc.download_pandoc(version='1.19.1')
+
     app.run(host='0.0.0.0', port=os.getenv('PORT', 8080), debug=True)
