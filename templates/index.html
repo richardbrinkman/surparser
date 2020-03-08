@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+	<h1>Surparser</h1>
+
+	<form method="post" action="convert">
+		Input file: <input type="file" name="input">
+		<br>
+		Cesuur: <input type="number" name="cesuur" placeholder="55">
+		<br>
+		<input type="checkbox" name="answer_score" checked>
+		List all questions ordered by the average score
+		<br>
+		<input type="checkbox" name="item_type" checked>
+		List all item types with their average score
+		<br>
+		<input type="checkbox" name="learning_goals" checked>
+		List all learning goals with their average score
+		<br>
+		<input type="checkbox" name="student_detail" checked>
+		List all answers for each student
+		<br>
+		<input type="checkbox" name="student_score" checked>
+		List all students ordered by their score
+		<br>
+		<input type="checkbox" name="test_title" checked>
+		List the title of the test form
+		<br>
+		<input type="checkbox" name="units" checked>
+		List all units with their average score
+		<br>
+		Output format:
+		<select name="output_format">
+			{% for output_format in output_formats %}
+				<option>{{ output_format }}</option>
+			{% endfor %}
+		</select>
+		<input type="submit" value="convert">
+	</form>
+
+{% endblock %}
