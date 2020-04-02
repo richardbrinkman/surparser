@@ -382,7 +382,7 @@ def plot_unit(distribution, plot_dir, plot_extension, unit):
     for name, marks in distribution:
         left = 0
         for mark, count in marks:
-            axes.barh(name, count, left=left, color=f"C{mark}")
+            axes.barh(name, count, left=left, color=f"C{round(float(str(mark).replace(',', '.')))}")
             if int(count) > 0:
                 axes.text(left + int(count) / 2, name, str(mark), verticalalignment="center")
             left += count
