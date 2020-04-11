@@ -2,41 +2,51 @@
 
 {% block body %}
 
-	<h1>Surparser</h1>
+<h1>Surparser</h1>
 
-	<form method="post" action="convert">
-		Input file: <input type="file" name="input">
-		<br>
-		Cesuur: <input type="number" name="cesuur" placeholder="55">
-		<br>
-		<input type="checkbox" name="answer_score" checked>
-		List all questions ordered by the average score
-		<br>
-		<input type="checkbox" name="item_type" checked>
-		List all item types with their average score
-		<br>
-		<input type="checkbox" name="learning_goals" checked>
-		List all learning goals with their average score
-		<br>
-		<input type="checkbox" name="student_detail" checked>
-		List all answers for each student
-		<br>
-		<input type="checkbox" name="student_score" checked>
-		List all students ordered by their score
-		<br>
-		<input type="checkbox" name="test_title" checked>
-		List the title of the test form
-		<br>
-		<input type="checkbox" name="units" checked>
-		List all units with their average score
-		<br>
-		Output format:
-		<select name="output_format">
-			{% for output_format in output_formats %}
-				<option>{{ output_format }}</option>
-			{% endfor %}
-		</select>
-		<input type="submit" value="convert">
-	</form>
+<form action="convert" enctype="multipart/form-data" method="post">
+	Input file: <input name="input" required type="file">
+	<br>
+	Cesuur: <input name="cesuur" placeholder="percentage" type="number">
+	<br>
+	<input checked name="answer-score" type="checkbox">
+	List all questions ordered by the average score
+	<br>
+	<input checked name="distribution" type="checkbox">
+	Adds a table of multiple choice answers and their distribution
+	<br>
+	<input checked name="item-type" type="checkbox">
+	List all item types with their average score
+	<br>
+	<input checked name="learning-goals" type="checkbox">
+	List all learning goals with their average score
+	<br>
+	<input checked name="plot" type="checkbox">
+	Include plots
+	<br>
+	<input checked name="student-detail" type="checkbox">
+	List all answers for each student
+	<br>
+	<input checked name="student-score" type="checkbox">
+	List all students ordered by their score
+	<br>
+	<input checked name="test-title" type="checkbox">
+	List the title of the test form
+	<br>
+	<input checked name="translation" type="checkbox">
+	Add a translation table between score and marks
+	<br>
+	<input type="checkbox" name="units" checked>
+	List all units with their average score
+	<br>
+	Output format:
+	<select name="output-format">
+		<option>pdf</option>
+		{% for output_format in output_formats %}
+		<option>{{ output_format }}</option>
+		{% endfor %}
+	</select>
+	<input type="submit" value="convert">
+</form>
 
 {% endblock %}

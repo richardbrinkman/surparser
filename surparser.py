@@ -582,7 +582,8 @@ def output_translation(cursor, output, cesuur):
     print(file=output)
 
 
-if __name__ == "__main__":
+def get_argument_parser():
+    global argumentParser
     argumentParser = argparse.ArgumentParser(description="""
         Parser for ItemsDeliveredRawReport.csv file produced by Surpass.
 
@@ -593,14 +594,14 @@ if __name__ == "__main__":
         ./surparser.py --all | pandoc -o surparser.pdf -f markdown
     """)
     argumentParser.add_argument("--all",
-        action="store_true",
-        help="Output all sections"
-    )
+                                action="store_true",
+                                help="Output all sections"
+                                )
     argumentParser.add_argument("--answer-score",
-        action="store_true",
-        dest="answer_score",
-        help="Lists all questions ordered by the average score"
-    )
+                                action="store_true",
+                                dest="answer_score",
+                                help="Lists all questions ordered by the average score"
+                                )
     argumentParser.add_argument("--cesuur",
                                 help="Cesuur",
                                 metavar="percentage",
@@ -627,37 +628,37 @@ if __name__ == "__main__":
                                 help="Lists all item types with their average score"
                                 )
     argumentParser.add_argument("--learning-goals",
-        action="store_true",
-        dest="learning_goals",
-        help="Lists all learning goals with their average score"
-    )
+                                action="store_true",
+                                dest="learning_goals",
+                                help="Lists all learning goals with their average score"
+                                )
     argumentParser.add_argument("--output",
-        default=sys.stdout,
-        help="Name of the outputfile (defaults to stdout)",
-        metavar="output_filename.md",
-        type=argparse.FileType("w")
-    )
+                                default=sys.stdout,
+                                help="Name of the outputfile (defaults to stdout)",
+                                metavar="output_filename.md",
+                                type=argparse.FileType("w")
+                                )
     argumentParser.add_argument("--plot",
-        action="store_true",
-        help="Include plots"
-    )
+                                action="store_true",
+                                help="Include plots"
+                                )
     argumentParser.add_argument("--plot-dir",
-        default=".",
-        dest="plot_dir",
-        help="Directory where plots are stored (defaults to .)",
-        metavar="directory"
-    )
+                                default=".",
+                                dest="plot_dir",
+                                help="Directory where plots are stored (defaults to .)",
+                                metavar="directory"
+                                )
     argumentParser.add_argument("--plot-extension",
-        default="png",
-        dest="plot_extension",
-        help="Extension of the plots (defaults to png",
-        metavar="png/jpeg/pdf/..."
-    )
+                                default="png",
+                                dest="plot_extension",
+                                help="Extension of the plots (defaults to png",
+                                metavar="png/jpeg/pdf/..."
+                                )
     argumentParser.add_argument("--student-detail",
-        action="store_true",
-        dest="student_detail",
-        help="Lists all answers for each student"
-    )
+                                action="store_true",
+                                dest="student_detail",
+                                help="Lists all answers for each student"
+                                )
     argumentParser.add_argument("--student-score",
                                 action="store_true",
                                 dest="student_score",
@@ -676,18 +677,16 @@ if __name__ == "__main__":
                                 action="store_true",
                                 help="Lists all units with their average score"
                                 )
-    arguments = argumentParser.parse_args()
+    return argumentParser
 
+
+def run(arguments):
     read_csv(arguments.input, arguments.db.cursor())
     arguments.db.commit()
-
     unit_plot_files = None
-
-    if len(sys.argv) == 1:
-        argumentParser.print_help()
     arguments.units = len(list(units(arguments.db.cursor()))) > 0 and (arguments.units or arguments.all)
     arguments.learning_goals = len(list(learning_goals(arguments.db.cursor()))) > 0 and (
-                arguments.learning_goals or arguments.all)
+            arguments.learning_goals or arguments.all)
     if arguments.test_title or arguments.all:
         if arguments.plot and arguments.cesuur:
             student_score_plot_file = plot_student_score(arguments.db.cursor(), arguments.cesuur, arguments.plot_dir,
@@ -717,3 +716,13 @@ if __name__ == "__main__":
         output_distribution(arguments.db.cursor(), arguments.output)
     if arguments.student_detail or arguments.all:
         output_student_detail(arguments.db.cursor(), arguments.output, arguments.units, arguments.learning_goals)
+
+
+if __name__ == "__main__":
+    argumentParser = get_argument_parser()
+    arguments = argumentParser.parse_args()
+
+    if len(sys.argv) == 1:
+        argumentParser.print_help()
+    else:
+        run(arguments)
