@@ -424,7 +424,7 @@ def output_distribution(cursor, output):
     print("----- | {}".format(" | ".join(map(lambda x: "-" * len(x), all_multiplechoice_answers(cursor)))), file=output)
     for question, correct_answer, answers in distribution(cursor):
         print("{} | {}".format(question, " | ".join(
-            [format_answer(correct_answer, answer, answers[answer]) for answer in answers]), file=output))
+            [format_answer(correct_answer, answer, answers[answer]) for answer in answers])), file=output)
     print(file=output)
 
 
