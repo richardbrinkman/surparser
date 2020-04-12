@@ -5,9 +5,9 @@ Surparser
 
 ```
 usage: surparser.py [-h] [--all] [--answer-score] [--cesuur percentage]
-                    [--db database.db] [--input input_file_name.csv]
-                    [--item-type] [--learning-goals]
-                    [--output output_filename.md] [--plot]
+                    [--db database.db] [--distribution]
+                    [--input input_file_name.csv] [--item-type]
+                    [--learning-goals] [--output output_filename.md] [--plot]
                     [--plot-dir directory] [--plot-extension png/jpeg/pdf/...]
                     [--student-detail] [--student-score] [--test-title]
                     [--translation] [--units]
@@ -18,12 +18,13 @@ Tip: if you want to produce a pdf use: ./surparser.py --all | pandoc -o
 surparser.pdf -f markdown
 
 optional arguments:
-
   -h, --help            show this help message and exit
   --all                 Output all sections
   --answer-score        Lists all questions ordered by the average score
   --cesuur percentage   Cesuur
   --db database.db      Name of the database file (defaults to :memory:)
+  --distribution        Adds a table of multiple choice answers and their
+                        distribution
   --input input_file_name.csv
                         Name of the input CSV file (defaults to
                         ItemsDeliveredRawReport.csv)
