@@ -72,8 +72,12 @@ def extract_arguments_from_request(directory):
     yield os.path.join(directory, "toetsanalyse.md")
 
     if "cesuur" in request.form:
-        yield "--cesuur"
-        yield request.form["cesuur"]
+        try:
+            cesuur = float(request.form["cesuur"])
+            yield "--cesuur"
+            yield str(cesuur)
+        except ValueError:
+            pass
 
     if "plot" in request.form:
         yield "--plot-dir"
