@@ -89,9 +89,6 @@ def extract_arguments_from_request(directory):
 
 
 if __name__ == "__main__":
-    try:
-        pypandoc.get_pandoc_version()
-    except OSError:
-        pypandoc.download_pandoc(version='1.19.1')
+    pypandoc.ensure_pandoc_installed()
 
     app.run(host='0.0.0.0', port=os.getenv('PORT', 8080), debug=True)
