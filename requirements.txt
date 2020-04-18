@@ -1,4 +1,4 @@
 flask
 matplotlib
 numpy
-pypandoc
+pypandoc>=1.5
