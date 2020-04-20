@@ -11,7 +11,7 @@ WORKDIR /srv
 COPY requirements.txt /srv
 
 RUN apt-get update\
- && apt-get install -y pandoc texlive-latex-base texlive-latex-recommended texlive-fonts-recommended\
+ && apt-get install -y --no-install-recommends lmodern pandoc texlive-latex-base texlive-latex-recommended texlive-fonts-recommended\
  && rm -rf /var/lib/apt/lists/*\
  && pip install -r /srv/requirements.txt
 
