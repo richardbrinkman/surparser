@@ -56,6 +56,7 @@ def default_extension():
         "markdown_strict": "md",
         "native": "md",
         "plain": "txt",
+        "revealjs": "html",
         "slideous": "html",
         "slidy": "html",
     }

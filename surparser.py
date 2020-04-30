@@ -362,6 +362,7 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
     axes.bar(x, y, align="center")
     filename = os.path.join(plot_dir, f"student_score.{plot_extension}")
     fig.savefig(filename)
+    plt.close()
     return filename
 
 
@@ -389,6 +390,7 @@ def plot_unit(distribution, plot_dir, plot_extension, unit):
     make_axes_area_auto_adjustable(axes)
     filename = os.path.join(plot_dir, f"unit_{unit}.{plot_extension}")
     fig.savefig(filename)
+    plt.close()
     return unit, filename
 
 
