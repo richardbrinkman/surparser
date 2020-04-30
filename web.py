@@ -31,6 +31,7 @@ def convert():
     output_filename = os.path.join(directory, "toetsanalyse." + default_extension())
     pypandoc.convert_file(os.path.join(directory, "toetsanalyse.md"),
                           request.form["output-format"],
+                          extra_args=["--standalone", "--self-contained"],
                           outputfile=output_filename)
     return redirect(output_filename)
 
