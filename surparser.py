@@ -718,6 +718,7 @@ def run(arguments):
         output_distribution(arguments.db.cursor(), arguments.output)
     if arguments.student_detail or arguments.all:
         output_student_detail(arguments.db.cursor(), arguments.output, arguments.units, arguments.learning_goals)
+    arguments.output.close()
 
 
 if __name__ == "__main__":
