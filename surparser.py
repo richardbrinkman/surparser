@@ -137,17 +137,18 @@ def parse_question_params(params):
         name = re.match(r"Naam \[(.+)\]", key)
         if name:
             question_id = name.group(1)
-            yield {
-                "QuestionId": question_id,
-                "Naam": params[key],
-                "Totaalscore": params["Totaalscore [{}]".format(question_id)],
-                "Sleutel": params["Sleutel [{}]".format(question_id)],
-                "ItemType": params["Itemtype [{}]".format(question_id)],
-                "ScoreType": params["Scoretype [{}]".format(question_id)],
-                "LO": params.get("LO [{}]".format(question_id), None),
-                "Unit": params.get("Unit [{}]".format(question_id), None),
-                "Trefwoorden": params.get("Trefwoorden [{}]".format(question_id), None)
-            }
+            if params["Grade"] != "Ongeldig":
+                yield {
+                    "QuestionId": question_id,
+                    "Naam": params[key],
+                    "Totaalscore": params["Totaalscore [{}]".format(question_id)],
+                    "Sleutel": params["Sleutel [{}]".format(question_id)],
+                    "ItemType": params["Itemtype [{}]".format(question_id)],
+                    "ScoreType": params["Scoretype [{}]".format(question_id)],
+                    "LO": params.get("LO [{}]".format(question_id), None),
+                    "Unit": params.get("Unit [{}]".format(question_id), None),
+                    "Trefwoorden": params.get("Trefwoorden [{}]".format(question_id), None)
+                }
 
 
 def parse_answer_params(params):
@@ -585,7 +586,6 @@ def output_translation(cursor, output, cesuur):
 
 
 def get_argument_parser():
-    global argumentParser
     argumentParser = argparse.ArgumentParser(description="""
         Parser for ItemsDeliveredRawReport.csv file produced by Surpass.
 
