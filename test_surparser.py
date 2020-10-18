@@ -8,6 +8,7 @@ from surparser import *
 class ParamParsingTestCase(unittest.TestCase):
     def setUp(self):
         self.params = {
+            "Grade": "Fail",
             "Naam [1234P5678]": "First question",
             "Naam [1234P5679]": "Second question",
             "Totaalscore [1234P5678]": "1",
