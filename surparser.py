@@ -29,27 +29,27 @@ def open_database(filename):
     cursor = db.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Student(
-                Reference MEDIUMINT UNSIGNED NOT NULL PRIMARY KEY,
-                FirstName TEXT NOT NULL,
-                LastName TEXT NOT NULL,
-                Gender CHAR(1),
-                Keycode CHAR(8),
-                ActualMark SMALLINT UNSIGNED,
-                TotalMark SMALLINT UNSIGNED,
-                Grade CHAR(4)
+                Referentie MEDIUMINT UNSIGNED NOT NULL PRIMARY KEY,
+                Voornaam TEXT NOT NULL,
+                Achternaam TEXT NOT NULL,
+                Geslacht CHAR(1),
+                Sleutelcode CHAR(8),
+                Daadwerkelijke_markering SMALLINT UNSIGNED,
+                Totaalscore SMALLINT UNSIGNED,
+                Cijfer CHAR(4)
         );
     """)
     cursor.execute("DELETE FROM Student;")
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Test(
-            TestForm TEXT NOT NULL PRIMARY KEY,
-            Test TEXT,
-            Centre TEXT,
-            Subject TEXT,
-            TotalMark SMALLINT UNSIGNED
+        CREATE TABLE IF NOT EXISTS Toets(
+            Toetsformulier TEXT NOT NULL PRIMARY KEY,
+            Toets TEXT,
+            Centrum TEXT,
+            Onderwerp TEXT,
+            Totaalscore SMALLINT UNSIGNED
         );
     """)
-    cursor.execute("DELETE FROM Test;")
+    cursor.execute("DELETE FROM Toets;")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Question(
             QuestionId CHAR(11) NOT NULL PRIMARY KEY,
@@ -84,8 +84,8 @@ def open_database(filename):
                 REFERENCES Question(QuestionId)
                 ON UPDATE CASCADE
                 ON DELETE CASCADE,
-            Reference MEDIUMINT UNSIGNED NOT NULL
-                REFERENCES Student(Reference)
+            Referentie MEDIUMINT UNSIGNED NOT NULL
+                REFERENCES Student(Referentie)
                 ON UPDATE CASCADE
                 ON DELETE CASCADE,
             DaadwerkelijkeMarkering SMALLINT UNIGNED,
@@ -100,17 +100,18 @@ def open_database(filename):
 
 
 def insert_student(cursor, params):
-    params["ActualMark"] = float(params["ActualMark"].replace(",", "."))
+    params["Daadwerkelijke_markering"] = float(params["Daadwerkelijke markering"].replace(",", "."))
+    del params["Daadwerkelijke markering"]
     return cursor.execute("""
-        INSERT OR REPLACE INTO Student(Reference, FirstName, LastName, Gender, Keycode, ActualMark, TotalMark, Grade)
-        VALUES(:Reference, :FirstName, :LastName, :Gender, :Keycode, :ActualMark, :TotalMark, :Grade);
+        INSERT OR REPLACE INTO Student(Referentie, Voornaam, Achternaam, Geslacht, Sleutelcode, Daadwerkelijke_markering, Totaalscore, Cijfer)
+        VALUES(:Referentie, :Voornaam, :Achternaam, :Geslacht, :Sleutelcode, :Daadwerkelijke_markering, :Totaalscore, :Cijfer);
     """, params)
 
 
-def insert_test_form(cursor, params):
+def insert_toetsformulier(cursor, params):
     return cursor.execute("""
-        INSERT OR REPLACE INTO Test(TestForm, Test, Centre, Subject, TotalMark)
-        VALUES(:TestForm, :Test, :Centre, :Subject, :TotalMark)
+        INSERT OR REPLACE INTO Toets(Toetsformulier, Toets, Centrum, Onderwerp, Totaalscore)
+        VALUES(:Toetsformulier, :Toets, :Centrum, :Onderwerp, :Totaalscore)
     """, params)
 
 
@@ -127,8 +128,8 @@ def insert_vijanden(cursor, params):
 
 def insert_answer(cursor, params):
     return cursor.executemany("""
-        INSERT OR REPLACE INTO Answer(QuestionId, Reference, DaadwerkelijkeMarkering, Reactie, Weergavetijd, Volgorde, Nagekeken)
-        VALUES(:QuestionId, :Reference, :DaadwerkelijkeMarkering, :Reactie, :Weergavetijd, :Volgorde, :Nagekeken);
+        INSERT OR REPLACE INTO Answer(QuestionId, Referentie, DaadwerkelijkeMarkering, Reactie, Weergavetijd, Volgorde, Nagekeken)
+        VALUES(:QuestionId, :Referentie, :DaadwerkelijkeMarkering, :Reactie, :Weergavetijd, :Volgorde, :Nagekeken);
     """, parse_answer_params(params))
 
 
@@ -137,7 +138,7 @@ def parse_question_params(params):
         name = re.match(r"Naam \[(.+)\]", key)
         if name:
             question_id = name.group(1)
-            if params["Grade"] != "Ongeldig":
+            if params["Cijfer"] != "Ongeldig":
                 yield {
                     "QuestionId": question_id,
                     "Naam": params[key],
@@ -158,7 +159,7 @@ def parse_answer_params(params):
             question_id = name.group(1)
             yield {
                 "QuestionId": question_id,
-                "Reference": params["Reference"],
+                "Referentie": params["Referentie"],
                 "DaadwerkelijkeMarkering": params["Daadwerkelijke markering [{}]".format(question_id)],
                 "Reactie": params["Reactie [{}]".format(question_id)],
                 "Weergavetijd": params["Weergavetijd [{}]".format(question_id)],
@@ -170,7 +171,7 @@ def parse_answer_params(params):
 def read_csv(input_filename, cursor):
     with open(input_filename, newline="") as csvfile:
         for row in csv.DictReader(csvfile):
-            for func in [insert_student, insert_test_form, insert_question, insert_vijanden, insert_answer]:
+            for func in [insert_student, insert_toetsformulier, insert_question, insert_vijanden, insert_answer]:
                 func(cursor, row)
 
 
@@ -187,12 +188,12 @@ def answer_score(cursor):
 
 def student_score(cursor, cesuur=None):
     cursor.execute("""
-        SELECT FirstName, LastName, ActualMark, TotalMark
+        SELECT Voornaam, Achternaam, Daadwerkelijke_markering, Totaalscore
         FROM Student
         NATURAL JOIN Answer
         WHERE Nagekeken = 'Ja'
-        GROUP BY Reference
-        ORDER BY ActualMark DESC
+        GROUP BY Referentie
+        ORDER BY Daadwerkelijke_markering DESC
     """)
     for first_name, last_name, actual_score, total_score in cursor:
         if cesuur is None:
@@ -214,22 +215,22 @@ def pass_percentage(cursor, cesuur):
 
 def students(cursor):
     return cursor.execute("""
-        SELECT FirstName, LastName, Reference
+        SELECT Voornaam, Achternaam, Referentie
         FROM Student
         NATURAL JOIN Answer
         WHERE Nagekeken = 'Ja'
-        GROUP BY Reference
-        ORDER BY FirstName, LastName
+        GROUP BY Referentie
+        ORDER BY Voornaam, Achternaam
     """)
 
 
-def answers(cursor, reference):
+def answers(cursor, referentie):
     return cursor.execute("""
         SELECT Naam, Reactie, Sleutel, DaadwerkelijkeMarkering, TotaalScore
         FROM Question
         NATURAL JOIN Answer
-        WHERE Nagekeken = 'Ja' AND Reference = ?
-    """, (reference,))
+        WHERE Nagekeken = 'Ja' AND Referentie = ?
+    """, (referentie,))
 
 
 def multiplechoice_questions(cursor):
@@ -284,9 +285,9 @@ def question_distribution(db):
         yield name, unit_question(db.cursor(), question_id)
 
 
-def unit_results(cursor, reference=None):
-    if reference:
-        where = " AND Reference = {}".format(reference)
+def unit_results(cursor, referentie=None):
+    if referentie:
+        where = " AND Referentie = {}".format(referentie)
     else:
         where = ""
     return cursor.execute("""
@@ -300,9 +301,9 @@ def unit_results(cursor, reference=None):
     )
 
 
-def learning_goals(cursor, reference=None):
-    if reference:
-        where = " AND Reference = {}".format(reference)
+def learning_goals(cursor, referentie=None):
+    if referentie:
+        where = " AND Referentie = {}".format(referentie)
     else:
         where = ""
     return cursor.execute("""
@@ -343,8 +344,8 @@ def distribution(cursor):
         yield name, correct_answer, result
 
 
-def get_testform(cursor):
-    return cursor.execute("SELECT TestForm, Test, TotalMark FROM Test").fetchone()
+def get_toetsformulier(cursor):
+    return cursor.execute("SELECT Toetsformulier, Toets, Totaalscore FROM Toets").fetchone()
 
 
 def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
@@ -356,8 +357,8 @@ def plot_student_score(cursor, cesuur, plot_dir='.', plot_extension="png"):
              xlabel="cijfer",
              ylabel="aantal",
              xticks=x)
-    _, _, totalmark = get_testform(cursor)
-    for _, _, actualmark, _, cijfer in student_score(cursor, cesuur):
+    _, _, totaalscore = get_toetsformulier(cursor)
+    for _, _, daadwerkelijke_markering, _, cijfer in student_score(cursor, cesuur):
         cijfer = round(cijfer)
         y[cijfer - 1] += 1
     axes.bar(x, y, align="center")
@@ -436,17 +437,17 @@ def output_student_score(cursor, output, cesuur):
     print("==============", file=output)
     print(file=output)
     if cesuur:
-        testform, test, totalmark = get_testform(cursor)
+        toetsformulier, toets, totaalscore = get_toetsformulier(cursor)
         cesuur /= 100.0
         print("Voornaam | Achternaam | Behaalde punten | Percentage | Cijfer", file=output)
         print("-------- | ---------- | ---------------:| ----------:| ------:", file=output)
-        for firstname, lastname, actualmark, percentage, cijfer in student_score(cursor, cesuur):
-            print(f"{firstname} | {lastname} | {actualmark} | {percentage:.1f} | {cijfer:.0f}", file=output)
+        for voornaam, achternaam, daadwerkelijke_markering, percentage, cijfer in student_score(cursor, cesuur):
+            print(f"{voornaam} | {achternaam} | {daadwerkelijke_markering} | {percentage:.1f} | {cijfer:.0f}", file=output)
     else:
         print("Voornaam | Achternaam | Behaalde punten | Percentage", file=output)
         print("-------- | ---------- | ---------------:| ----------:", file=output)
-        for firstname, lastname, actualmark, percentage in student_score(cursor):
-            print(f"{firstname} | {lastname} | {actualmark} | {percentage:.1f}", file=output)
+        for voornaam, achternaam, daadwerkelijke_markering, percentage in student_score(cursor):
+            print(f"{voornaam} | {achternaam} | {daadwerkelijke_markering} | {percentage:.1f}", file=output)
     print(file=output)
 
 
@@ -461,43 +462,43 @@ def mark(actualscore, cesuur, totalscore):
         return 10.0 - 4.5 * (totalscore - actualscore) / ((1.0 - cesuur) * totalscore)
 
 
-def score(actualmark, cesuur, totalscore):
-    if actualmark < 1.0:
+def score(daadwerkelijke_markering, cesuur, totalscore):
+    if daadwerkelijke_markering < 1.0:
         return 0.0
-    elif actualmark > 10.0:
+    elif daadwerkelijke_markering > 10.0:
         return totalscore
-    elif actualmark < 5.5:
-        return (actualmark - 1.0) * cesuur * totalscore / 4.5
+    elif daadwerkelijke_markering < 5.5:
+        return (daadwerkelijke_markering - 1.0) * cesuur * totalscore / 4.5
     else:
-        return totalscore - (10.0 - actualmark) * (1.0 - cesuur) * totalscore / 4.5
+        return totalscore - (10.0 - daadwerkelijke_markering) * (1.0 - cesuur) * totalscore / 4.5
 
 
 def output_student_detail(cursor, output, show_units=True, show_learning_goals=True):
     print("Gemaakte toetsen", file=output)
     print("================", file=output)
     print(file=output)
-    for firstname, lastname, reference in list(students(cursor)):
-        name = " ".join([firstname, lastname])
+    for voornaam, achternaam, referentie in list(students(cursor)):
+        name = " ".join([voornaam, achternaam])
         print(name, file=output)
         print("-" * len(name), file=output)
         print(file=output)
         if show_units:
             print("Unit                            | Aantal | Percentage", file=output)
             print("------------------------------- | ------:| ----------:", file=output)
-            for unit, count, percentage in unit_results(cursor, reference):
+            for unit, count, percentage in unit_results(cursor, referentie):
                 if unit:
                     print(f"{unit} | {count:.0f} | {percentage:.1f}", file=output)
             print(file=output)
         if show_learning_goals:
             print("Leerdoel                                                  | Aantal | Percentage", file=output)
             print("--------------------------------------------------------- | ------:| -----------:", file=output)
-            for lo, count, percentage in learning_goals(cursor, reference):
+            for lo, count, percentage in learning_goals(cursor, referentie):
                 if lo:
                     print("{} | {:.0f} | {:.1f}".format(lo.replace("|", "/"), count, percentage), file=output)
             print(file=output)
         print("Vraag                 | Gegeven antwoord (Goede antwoord)                     | Behaalde score / Max score", file=output)
         print("--------------------- | ----------------------------------------------------- | --------------------------:", file=output)
-        for Naam, Reactie, Sleutel, DaadwerkelijkeMarkering, TotaalScore in answers(cursor, reference):
+        for Naam, Reactie, Sleutel, DaadwerkelijkeMarkering, TotaalScore in answers(cursor, referentie):
             print("{} | {} ({}) | {} / {}".format(
                 Naam,
                 Reactie.replace("|", "/"),
@@ -547,13 +548,13 @@ def output_learning_goals(cursor, output):
     print(file=output)
 
 
-def output_test(cursor, output, cesuur, plot_file=None):
-    testform, test, total_mark = get_testform(cursor)
-    print(testform, file=output)
-    print("=" * len(testform), file=output)
+def output_toets(cursor, output, cesuur, plot_file=None):
+    toetsformulier, toets, total_mark = get_toetsformulier(cursor)
+    print(toetsformulier, file=output)
+    print("=" * len(toetsformulier), file=output)
     print(file=output)
     print("------------------   ----", file=output)
-    print("Test                ", test, file=output)
+    print("Toets                ", toets, file=output)
     print("Max score           ", total_mark, file=output)
     if cesuur:
         print(f"Cesuur               {cesuur:.1f}%", file=output)
@@ -569,7 +570,7 @@ def output_test(cursor, output, cesuur, plot_file=None):
 
 
 def output_translation(cursor, output, cesuur):
-    _, _, total_mark = get_testform(cursor)
+    _, _, total_mark = get_toetsformulier(cursor)
     cesuur /= 100.0
     print("Omrekeningstabel", file=output)
     print("================", file=output)
@@ -695,7 +696,7 @@ def run(arguments):
                                                          arguments.plot_extension)
         else:
             student_score_plot_file = None
-        output_test(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
+        output_toets(arguments.db.cursor(), arguments.output, arguments.cesuur, student_score_plot_file)
     if (arguments.translation or arguments.all) and arguments.cesuur:
         output_translation(arguments.db.cursor(), arguments.output, arguments.cesuur)
     if arguments.student_score or arguments.all:

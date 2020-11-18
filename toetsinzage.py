@@ -22,8 +22,8 @@ argument_parser.add_argument("--output",
 parser = argument_parser.parse_args()
 
 input_df = pandas.read_csv(parser.input)
-df = input_df[input_df["Grade"] != "Ongeldig"]
-output_df = df[["FirstName", "LastName", "Keycode"]]
+df = input_df[input_df["Cijfer"] != "Ongeldig"]
+output_df = df[["Voornaam", "Achternaam", "Sleutelcode"]]
 pandas.options.mode.chained_assignment = None
-output_df["Email"] = df["Reference"].astype(str) + "@student.saxion.nl"
+output_df["Email"] = df["Referentie"].astype(str) + "@student.saxion.nl"
 output_df.to_excel(parser.output, index=False)
