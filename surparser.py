@@ -207,7 +207,7 @@ def pass_percentage(cursor, cesuur):
     pass_count = 0
     count = 0
     for _, _, _, _, cijfer in student_score(cursor, cesuur):
-        if float(cijfer) > 5.5:
+        if float(cijfer) >= 5.5:
             pass_count += 1
         count += 1
     return 100.0 * pass_count / count
